@@ -1,10 +1,22 @@
 import chess
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from elomimic_api.engines import random_move
 
 app = FastAPI(title="elomimic API")
+
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 
 
 class MoveRequest(BaseModel):
