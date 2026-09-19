@@ -9,11 +9,11 @@ Most engines answer "what is the best move?". elomimic answers a different quest
 
 ## Status
 
-Early stage. The HTTP API and a baseline random engine are in place. No machine learning yet: the project is being built in the order of the roadmap below, and each phase ships working, tested code.
+Early stage. The HTTP API, a baseline random engine and a playable web client are in place. No machine learning yet: the project is being built in the order of the roadmap below, and each phase ships working, tested code.
 
 ## Roadmap
 
-- [ ] **1. Software foundations**: stateless HTTP API, rules, tests, CI *(in progress)*
+- [x] **1. Software foundations**: stateless HTTP API, rules, tests, CI, playable web client
 - [ ] **2. Classical engine**: evaluation function, minimax, alpha-beta pruning
 - [ ] **3. Benchmarking**: tournament runner to measure engines against each other
 - [ ] **4. Dataset**: Lichess game dumps, filtering and encoding by rating
@@ -29,13 +29,16 @@ Early stage. The HTTP API and a baseline random engine are in place. No machine 
 ```
 apps/
   api/        FastAPI service: legal moves, move validation, bot moves
+  web/        React client: playable chessboard backed by the API
 ```
 
-See [apps/api](apps/api/README.md) for setup, endpoints and error codes.
+See [apps/api](apps/api/README.md) and [apps/web](apps/web/README.md) for setup and details.
 
 ## Getting started
 
-Requires [uv](https://docs.astral.sh/uv/).
+Requires [uv](https://docs.astral.sh/uv/), [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/).
+
+Start the API:
 
 ```bash
 cd apps/api
@@ -43,7 +46,15 @@ uv sync
 uv run fastapi dev
 ```
 
-Then open http://127.0.0.1:8000/docs.
+Then, in a second terminal, start the web client:
+
+```bash
+cd apps/web
+pnpm install
+pnpm dev
+```
+
+Open http://localhost:5173 and play against the engine.
 
 ## Related work
 
