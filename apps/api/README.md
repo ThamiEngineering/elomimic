@@ -32,18 +32,19 @@ uv run ruff format
 
 ## Endpoints
 
-| Method | Path     | Description                                              |
-| ------ | -------- | -------------------------------------------------------- |
-| GET    | `/health` | Liveness check                                          |
-| GET    | `/moves`  | Legal moves for a position (`fen` query parameter)      |
-| POST   | `/move`   | Play a move and return the new position and game state  |
+| Method | Path        | Description                                            |
+| ------ | ----------- | ------------------------------------------------------ |
+| GET    | `/health`   | Liveness check                                         |
+| GET    | `/moves`    | Legal moves for a position (`fen` query parameter)     |
+| POST   | `/move`     | Play a move and return the new position and game state |
+| POST   | `/bot/move` | Let the engine play a move (currently a random engine) |
 
 ### Errors
 
-| Status | Meaning                                                  |
-| ------ | -------------------------------------------------------- |
-| 400    | The move is well-formed but illegal in the given position |
-| 422    | Malformed input (invalid FEN, invalid move format, missing field) |
+| Status | Meaning                                                                           |
+| ------ | --------------------------------------------------------------------------------- |
+| 400    | The request is valid but refused by the rules: illegal move, or game already over |
+| 422    | Malformed input (invalid FEN, invalid move format, missing field)                 |
 
 ## Stack
 
