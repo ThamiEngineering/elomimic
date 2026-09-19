@@ -18,9 +18,16 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.13.0",
     "pytest>=9.1.1",
     "ruff>=0.16.8",
 ]
 
 [tool.fastapi]
 entrypoint = "elomimic_api.main:app"
+
+[tool.ruff]
+src = ["src"]
+
+[tool.ruff.lint]
+extend-select = ["I"]
