@@ -1,122 +1,139 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import { Chessboard } from "react-chessboard";
 
-function App() {
-    const [count, setCount] = useState(0)
+import { ApiError, getLegalMoves, playBotMove, playMove } from "./api";
+import type { GameState } from "./api";
+import "./App.css";
 
-    return (
-        <>
-            <section id="center">
-                <div className="hero">
-                    <img src={heroImg} className="base" width="170" height="179" alt="" />
-                    <img src={reactLogo} className="framework" alt="React logo" />
-                    <img src={viteLogo} className="vite" alt="Vite logo" />
-                </div>
-                <div>
-                    <h1>Get started EloMimic</h1>
-                    <p>
-                        Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    className="counter"
-                    onClick={() => setCount((count) => count + 1)}
-                >
-                    Count is {count}
-                </button>
-            </section>
+type DropArgs = { sourceSquare: string; targetSquare: string | null };
 
-            <div className="ticks"></div>
+function resolveMove(legalMoves: string[], from: string, to: string): string | null {
+  const uci = `${from}${to}`;
+  if (legalMoves.includes(uci)) return uci;
 
-            <section id="next-steps">
-                <div id="docs">
-                    <svg className="icon" role="presentation" aria-hidden="true">
-                        <use href="/icons.svg#documentation-icon"></use>
-                    </svg>
-                    <h2>Documentation</h2>
-                    <p>Your questions, answered</p>
-                    <ul>
-                        <li>
-                            <a href="https://vite.dev/" target="_blank">
-                                <img className="logo" src={viteLogo} alt="" />
-                                Explore Vite
-                            </a>
-                        </li>
-                        <li>
-                            <a href="https://react.dev/" target="_blank">
-                                <img className="button-icon" src={reactLogo} alt="" />
-                                Learn more
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                <div id="social">
-                    <svg className="icon" role="presentation" aria-hidden="true">
-                        <use href="/icons.svg#social-icon"></use>
-                    </svg>
-                    <h2>Connect with us</h2>
-                    <p>Join the Vite community</p>
-                    <ul>
-                        <li>
-                            <a href="https://github.com/vitejs/vite" target="_blank">
-                                <svg
-                                    className="button-icon"
-                                    role="presentation"
-                                    aria-hidden="true"
-                                >
-                                    <use href="/icons.svg#github-icon"></use>
-                                </svg>
-                                GitHub
-                            </a>
-                        </li>
-                        <li>
-                            <a href="https://chat.vite.dev/" target="_blank">
-                                <svg
-                                    className="button-icon"
-                                    role="presentation"
-                                    aria-hidden="true"
-                                >
-                                    <use href="/icons.svg#discord-icon"></use>
-                                </svg>
-                                Discord
-                            </a>
-                        </li>
-                        <li>
-                            <a href="https://x.com/vite_js" target="_blank">
-                                <svg
-                                    className="button-icon"
-                                    role="presentation"
-                                    aria-hidden="true"
-                                >
-                                    <use href="/icons.svg#x-icon"></use>
-                                </svg>
-                                X.com
-                            </a>
-                        </li>
-                        <li>
-                            <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                                <svg
-                                    className="button-icon"
-                                    role="presentation"
-                                    aria-hidden="true"
-                                >
-                                    <use href="/icons.svg#bluesky-icon"></use>
-                                </svg>
-                                Bluesky
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </section>
-
-            <div className="ticks"></div>
-            <section id="spacer"></section>
-        </>
-    )
+  const promotion = `${uci}q`;
+  return legalMoves.includes(promotion) ? promotion : null;
 }
 
-export default App
+function describeError(error: unknown): string {
+  return error instanceof ApiError ? error.message : "The API is unreachable.";
+}
+
+function statusText(fen: string | null, state: GameState | null, busy: boolean): string {
+  if (fen === null) return "Connecting to the API…";
+  if (state?.is_checkmate) {
+    return state.turn === "white" ? "Checkmate. Black wins." : "Checkmate. White wins.";
+  }
+  if (state?.is_stalemate) return "Stalemate. Draw.";
+  if (state?.is_game_over) return "Game over. Draw.";
+  if (busy) return "The engine is thinking…";
+  if (state?.is_check) return "Check. Your move.";
+  return "Your move.";
+}
+
+export default function App() {
+  const [fen, setFen] = useState<string | null>(null);
+  const [legalMoves, setLegalMoves] = useState<string[]>([]);
+  const [state, setState] = useState<GameState | null>(null);
+  const [busy, setBusy] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getLegalMoves()
+      .then((start) => {
+        if (cancelled) return;
+        setFen(start.fen);
+        setLegalMoves(start.moves);
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setError(describeError(caught));
+      })
+      .finally(() => {
+        if (!cancelled) setBusy(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function startNewGame() {
+    setBusy(true);
+    setError(null);
+
+    try {
+      const start = await getLegalMoves();
+      setFen(start.fen);
+      setLegalMoves(start.moves);
+      setState(null);
+    } catch (caught) {
+      setError(describeError(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function playTurn(currentFen: string, move: string) {
+    setBusy(true);
+    setError(null);
+    setLegalMoves([]);
+
+    try {
+      const afterPlayer = await playMove(currentFen, move);
+      setFen(afterPlayer.fen);
+      setState(afterPlayer);
+      if (afterPlayer.is_game_over) return;
+
+      const afterBot = await playBotMove(afterPlayer.fen);
+      setFen(afterBot.fen);
+      setState(afterBot);
+      if (afterBot.is_game_over) return;
+
+      const next = await getLegalMoves(afterBot.fen);
+      setLegalMoves(next.moves);
+    } catch (caught) {
+      setError(describeError(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function handlePieceDrop({ sourceSquare, targetSquare }: DropArgs): boolean {
+    if (fen === null || targetSquare === null) return false;
+
+    const move = resolveMove(legalMoves, sourceSquare, targetSquare);
+    if (move === null) return false;
+
+    void playTurn(fen, move);
+    return true;
+  }
+
+  const gameOver = state?.is_game_over ?? false;
+
+  return (
+    <main className="app">
+      <h1>elomimic</h1>
+
+      <p className={error ? "status status--error" : "status"}>
+        {error ?? statusText(fen, state, busy)}
+      </p>
+
+      {fen !== null && (
+        <Chessboard
+          options={{
+            position: fen,
+            boardOrientation: "white",
+            allowDragging: !busy && !gameOver,
+            onPieceDrop: handlePieceDrop,
+          }}
+        />
+      )}
+
+      <button type="button" disabled={busy} onClick={() => void startNewGame()}>
+        New game
+      </button>
+    </main>
+  );
+}
