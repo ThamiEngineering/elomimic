@@ -47,6 +47,17 @@ def turn_name(board: chess.Board) -> str:
     return "white" if board.turn == chess.WHITE else "black"
 
 
+def game_state(board: chess.Board) -> dict:
+    return {
+        "fen": board.fen(),
+        "turn": turn_name(board),
+        "is_check": board.is_check(),
+        "is_checkmate": board.is_checkmate(),
+        "is_stalemate": board.is_stalemate(),
+        "is_game_over": board.is_game_over(),
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -75,14 +86,7 @@ def play_move(request: MoveRequest) -> MoveResponse:
 
     board.push(move)
 
-    return MoveResponse(
-        fen=board.fen(),
-        turn=turn_name(board),
-        is_check=board.is_check(),
-        is_checkmate=board.is_checkmate(),
-        is_stalemate=board.is_stalemate(),
-        is_game_over=board.is_game_over(),
-    )
+    return MoveResponse(**game_state(board))
 
 
 @app.post("/bot/move")
@@ -95,12 +99,4 @@ def bot_move(request: BotMoveRequest) -> BotMoveResponse:
     move = random_move(board)
     board.push(move)
 
-    return BotMoveResponse(
-        move=move.uci(),
-        fen=board.fen(),
-        turn=turn_name(board),
-        is_check=board.is_check(),
-        is_checkmate=board.is_checkmate(),
-        is_stalemate=board.is_stalemate(),
-        is_game_over=board.is_game_over(),
-    )
+    return BotMoveResponse(move=move.uci(), **game_state(board))
