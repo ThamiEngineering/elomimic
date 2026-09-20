@@ -29,6 +29,11 @@ updates:
           - "minor"
           - "patch"
     ignore:
+      # Must match the Node.js major used locally and in CI.
       - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
+      # Major compiler upgrade: revisit when the Vite react-ts template adopts it.
+      - dependency-name: "typescript"
         update-types:
           - "version-update:semver-major"
