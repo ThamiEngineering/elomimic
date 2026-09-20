@@ -16,6 +16,8 @@ def greedy_move(board: chess.Board) -> chess.Move:
     if board.is_game_over():
         raise ValueError("Game over")
 
+    perspective = 1 if board.turn == chess.WHITE else -1
+
     best_score = float("-inf")
     best_move: chess.Move | None = None
 
@@ -23,12 +25,13 @@ def greedy_move(board: chess.Board) -> chess.Move:
         board.push(move)
 
         score = evaluate(board)
+        player_score = score * perspective
 
         board.pop()
 
-        if score > best_score:
+        if player_score > best_score:
+            best_score = player_score
             best_move = move
-            best_score = score
 
     assert best_move is not None
     return best_move
